@@ -281,9 +281,9 @@
     <div class="center-wrap">
       <div class="ticket">
         <div class="field-label">學號</div>
-        <input type="text" id="studentIdInput" class="field-input" placeholder="例如 B10912345">
+        <input type="text" id="studentIdInput" class="field-input">
         <div class="field-label">暱稱（同學會在投影畫面上看到這個名字）</div>
-        <input type="text" id="nicknameInput" class="field-input" placeholder="例如 小豆">
+        <input type="text" id="nicknameInput" class="field-input">
         <div class="err-text" id="registerError"></div>
         <button class="btn btn-primary" id="registerSubmit" style="width:100%;max-width:280px;padding:14px;">進入作答</button>
       </div>
@@ -351,8 +351,8 @@
             },
             "submissions": {
               "$roomCode": {
+                ".read": "auth != null",
                 "$activityId": {
-                  ".read": "auth != null",
                   "$studentId": {
                     ".write": "auth != null && auth.uid === $studentId"
                   }
