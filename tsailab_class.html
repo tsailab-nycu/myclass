@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>課程活動看板</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1e2b22;
+    --bg-panel:#24352a;
+    --bg-panel-raised:#2b3d31;
+    --chalk:#f4f1e8;
+    --chalk-dim:#b9c4b7;
+    --chalk-faint:#8a9a8d;
+    --gold:#d9a441;
+    --gold-dim:#8a6a2f;
+    --danger:#e37b6b;
+    --border:rgba(244,241,232,0.14);
+    --border-strong:rgba(244,241,232,0.28);
+    --radius:10px;
+    --serif:'Fraunces', Georgia, serif;
+    --sans:'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,0.03), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(255,255,255,0.02), transparent 40%),
+      var(--bg);
+    color:var(--chalk);
+    font-family:var(--sans);
+    min-height:100%;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  .screen{display:none;flex:1;flex-direction:column;}
+  .screen.active{display:flex;}
+  button{font-family:var(--sans);cursor:pointer;}
+  button:disabled{cursor:not-allowed;opacity:0.4;}
+  button:focus-visible, input:focus-visible, textarea:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  input,textarea{font-family:var(--sans);}
+
+  .role-title{font-family:var(--serif);font-weight:600;font-size:clamp(26px,5vw,36px);margin:0 0 8px;}
+  .role-sub{color:var(--chalk-dim);font-size:14px;margin:0 0 30px;max-width:340px;line-height:1.6;}
+  #screen-role{align-items:center;justify-content:center;padding:32px 20px;text-align:center;}
+  .role-buttons{display:flex;flex-direction:column;gap:14px;width:100%;max-width:320px;}
+  .role-btn{
+    background:var(--bg-panel);border:1px solid var(--border-strong);border-radius:var(--radius);
+    color:var(--chalk);padding:22px 20px;font-size:17px;font-weight:600;text-align:left;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .role-btn:hover{border-color:var(--gold);background:var(--bg-panel-raised);}
+  .role-btn small{display:block;font-weight:400;color:var(--chalk-dim);font-size:13px;margin-top:4px;}
+
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;
+  }
+  .brand{font-family:var(--serif);font-weight:600;font-size:18px;}
+  .btn{
+    border-radius:8px;border:1px solid var(--border-strong);padding:10px 16px;
+    font-size:14px;font-weight:600;background:transparent;color:var(--chalk);transition:all .15s ease;
+  }
+  .btn-ghost:hover{background:var(--bg-panel);}
+  .btn-primary{background:var(--gold);border-color:var(--gold);color:#241a06;}
+  .btn-primary:hover{background:#e6b357;}
+  .btn-primary:disabled{background:var(--gold-dim);border-color:var(--gold-dim);color:#241a06;}
+  .btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger);}
+  .btn-danger:hover{background:rgba(227,123,107,0.12);}
+  .btn-back{background:transparent;border:none;color:var(--chalk-dim);font-size:14px;padding:6px 4px;}
+  .btn-back:hover{color:var(--chalk);}
+
+  .center-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;}
+  .ticket{width:100%;max-width:380px;display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;}
+  .field-input{
+    width:100%;padding:14px 16px;border-radius:8px;border:1px solid var(--border-strong);
+    background:var(--bg-panel);color:var(--chalk);font-size:16px;text-align:center;
+  }
+  .field-label{font-size:13px;color:var(--chalk-dim);align-self:flex-start;margin-bottom:-8px;}
+  .err-text{color:var(--danger);font-size:13px;min-height:18px;}
+
+  /* teacher dashboard */
+  .teacher-body{flex:1;padding:22px 24px;display:flex;flex-direction:column;gap:22px;max-width:1000px;width:100%;margin:0 auto;}
+  .room-strip{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+    background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;
+  }
+  .room-code-label{font-size:12px;color:var(--chalk-dim);}
+  .room-code-num{font-family:var(--serif);font-weight:700;font-size:34px;color:var(--gold);letter-spacing:2px;}
+  .question-box{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;display:flex;flex-direction:column;gap:12px;}
+  .question-box textarea{
+    width:100%;min-height:70px;padding:12px 14px;border-radius:8px;border:1px solid var(--border-strong);
+    background:var(--bg);color:var(--chalk);font-size:15px;resize:vertical;
+  }
+  .current-q-label{font-size:12px;color:var(--chalk-dim);}
+  .current-q-text{font-family:var(--serif);font-size:20px;font-weight:600;}
+
+  /* twitter-style live answer feed */
+  .feed-question{
+    max-width:600px;width:100%;margin:0 auto;padding:16px 20px;
+    border-bottom:1px solid var(--border);background:var(--bg);
+    position:sticky;top:0;z-index:5;
+  }
+  .feed-question-text{font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:4px;}
+  .feed-question-count{font-size:13px;color:var(--chalk-dim);}
+  .feed-question-count b{color:var(--gold);}
+  .feed-wrap{max-width:600px;width:100%;margin:0 auto;padding:0 20px 40px;flex:1;overflow-y:auto;}
+  .feed-empty{color:var(--chalk-faint);font-size:14px;padding:30px 0;text-align:center;}
+  .feed-item{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+  .feed-item.feed-item-new{animation:feedIn .35s ease;}
+  @keyframes feedIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+  .feed-avatar{
+    width:40px;height:40px;flex:0 0 40px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-weight:700;font-size:15px;color:#fff;
+  }
+  .feed-body{flex:1;min-width:0;}
+  .feed-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .feed-nick{font-weight:700;font-size:14px;color:var(--chalk);}
+  .feed-time{font-size:12px;color:var(--chalk-faint);}
+  .feed-text{font-size:15px;color:var(--chalk);line-height:1.5;white-space:pre-wrap;word-break:break-word;margin-top:2px;}
+
+  /* student flow */
+  .qcard{width:100%;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:14px;}
+  .qcard-label{font-size:12px;color:var(--chalk-dim);}
+  .qcard-text{font-family:var(--serif);font-size:20px;font-weight:600;line-height:1.5;}
+  .qcard textarea{
+    width:100%;min-height:90px;padding:12px 14px;border-radius:8px;border:1px solid var(--border-strong);
+    background:var(--bg);color:var(--chalk);font-size:15px;resize:vertical;
+  }
+  .wait-msg{color:var(--chalk-dim);font-size:15px;padding:30px 0;}
+  .pulse{width:10px;height:10px;border-radius:50%;background:var(--gold);margin:0 auto 14px;animation:pulseAnim 1.4s ease-in-out infinite;}
+  @keyframes pulseAnim{0%,100%{opacity:.35;transform:scale(1);}50%{opacity:1;transform:scale(1.4);}}
+  .submitted-box{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px;width:100%;}
+  .submitted-check{font-size:26px;margin-bottom:8px;}
+  .submitted-answer{font-size:15px;color:var(--chalk);white-space:pre-wrap;margin:10px 0;text-align:left;background:var(--bg);border-radius:8px;padding:12px 14px;}
+
+  .conn-banner{
+    display:none;align-items:center;gap:10px;background:rgba(227,123,107,0.14);
+    border:1px solid var(--danger);color:var(--danger);border-radius:8px;padding:10px 14px;
+    font-size:13px;max-width:1000px;width:calc(100% - 48px);margin:12px auto 0;
+  }
+  .conn-banner.show{display:flex;}
+
+  @media (max-width:640px){
+    .teacher-body{padding:16px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="connBanner" class="conn-banner">⚠ 連線異常，資料可能不是最新，請檢查網路連線</div>
+
+  <!-- ROLE SELECT -->
+  <div id="screen-role" class="screen active">
+    <div class="role-title">課程活動看板</div>
+    <div class="role-buttons">
+      <button class="role-btn" id="pickTeacher">我是老師</button>
+      <button class="role-btn" id="pickStudent">我是學生</button>
+    </div>
+  </div>
+
+  <!-- TEACHER GATE -->
+  <div id="screen-teacher-gate" class="screen">
+    <div class="topbar">
+      <div><button class="btn-back" id="gateBack">← 返回</button></div>
+      <div class="brand">老師登入</div>
+      <div style="width:60px"></div>
+    </div>
+    <div class="center-wrap">
+      <div class="ticket">
+        <div class="role-title" style="font-size:20px;margin-bottom:0;" id="gateTitle">請輸入4位數密碼</div>
+        <p class="role-sub" id="gateHint" style="margin:0 0 4px;">只有知道密碼的人才能開啟主控台。</p>
+        <input type="password" id="gatePinInput" class="field-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4位數密碼" style="max-width:200px;letter-spacing:6px;">
+        <div class="err-text" id="gateError"></div>
+        <button class="btn btn-primary" id="gateSubmit" style="width:100%;max-width:280px;padding:14px;">進入主控台</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER DASHBOARD -->
+  <div id="screen-teacher" class="screen">
+    <div class="topbar">
+      <div><button class="btn-back" id="teacherBack">← 返回</button></div>
+      <div class="brand">課程活動看板 · 主控台</div>
+      <button class="btn btn-ghost" id="newSessionBtn">開始新場次</button>
+    </div>
+    <div class="teacher-body">
+      <div class="room-strip">
+        <div>
+          <div class="room-code-label">房間代碼（請告訴學生這組數字）</div>
+          <div class="room-code-num" id="roomCodeDisplay">----</div>
+        </div>
+        <button class="btn btn-ghost" id="exportCsvBtn">下載本堂課紀錄（CSV）</button>
+      </div>
+
+      <div class="question-box">
+        <div class="current-q-label" id="currentQLabel">目前尚未發布題目</div>
+        <div class="current-q-text" id="currentQText"></div>
+        <textarea id="newQInput" placeholder="輸入這堂課的活動問題，例如：今天的討論中，你最大的收穫是什麼？"></textarea>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="publishQBtn">發布這一題</button>
+        </div>
+      </div>
+
+      <div class="room-strip">
+        <div class="current-q-label">已作答 <b id="dashRespondedCount" style="color:var(--chalk);">0</b> 人</div>
+        <button class="btn btn-primary" id="openWallBtn">查看即時作答牆 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER: LIVE ANSWER WALL (Twitter-style feed) -->
+  <div id="screen-wall" class="screen">
+    <div class="topbar">
+      <div><button class="btn-back" id="wallBack">← 返回主控台</button></div>
+      <div class="brand">即時作答牆</div>
+      <button class="btn btn-ghost" id="exportCsvBtn2">下載CSV</button>
+    </div>
+    <div class="feed-question" id="feedQuestionBar">
+      <div class="feed-question-text" id="feedQuestionText">尚未發布題目</div>
+      <div class="feed-question-count"><b id="feedCount">0</b> 人已作答</div>
+    </div>
+    <div class="feed-wrap" id="feedList"></div>
+  </div>
+
+  <!-- STUDENT: JOIN WITH ROOM CODE -->
+  <div id="screen-join" class="screen">
+    <div class="topbar">
+      <div><button class="btn-back" id="joinBack">← 返回</button></div>
+      <div class="brand">加入課程活動</div>
+      <div style="width:60px"></div>
+    </div>
+    <div class="center-wrap">
+      <div class="ticket">
+        <div class="role-title" style="font-size:20px;margin-bottom:0;">輸入房間代碼</div>
+        <p class="role-sub" style="margin:0 0 4px;">向老師詢問目前這堂課的房間代碼。</p>
+        <input type="text" id="roomCodeInput" class="field-input" inputmode="numeric" pattern="[0-9]*" placeholder="例如 4821" style="max-width:200px;letter-spacing:4px;font-size:20px;">
+        <div class="err-text" id="joinError"></div>
+        <button class="btn btn-primary" id="joinSubmit" style="width:100%;max-width:280px;padding:14px;">下一步</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENT: REGISTER ID + NICKNAME -->
+  <div id="screen-register" class="screen">
+    <div class="topbar">
+      <div><button class="btn-back" id="registerBack">← 返回</button></div>
+      <div class="brand">填寫基本資料</div>
+      <div style="width:60px"></div>
+    </div>
+    <div class="center-wrap">
+      <div class="ticket">
+        <div class="field-label">學號</div>
+        <input type="text" id="studentIdInput" class="field-input" placeholder="例如 B10912345">
+        <div class="field-label">暱稱（同學會在投影畫面上看到這個名字）</div>
+        <input type="text" id="nicknameInput" class="field-input" placeholder="例如 小豆">
+        <div class="err-text" id="registerError"></div>
+        <button class="btn btn-primary" id="registerSubmit" style="width:100%;max-width:280px;padding:14px;">進入作答</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENT: ANSWER SCREEN -->
+  <div id="screen-answer" class="screen">
+    <div class="topbar">
+      <div><button class="btn-back" id="answerBack">← 返回</button></div>
+      <div class="brand" id="answerBrand">作答中</div>
+      <div style="width:60px"></div>
+    </div>
+    <div class="center-wrap">
+      <div class="ticket" id="answerTicket"></div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,14,10,0.6);align-items:center;justify-content:center;z-index:999;padding:20px;">
+    <div style="background:var(--bg-panel);border:1px solid var(--border-strong);border-radius:var(--radius);padding:24px;max-width:340px;width:100%;text-align:center;">
+      <div id="modalMessage" style="font-size:15px;color:var(--chalk);margin-bottom:20px;line-height:1.6;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" id="modalCancel" style="flex:1;">取消</button>
+        <button class="btn btn-primary" id="modalOk" style="flex:1;">確定</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+/* =====================================================================
+   FIREBASE SETUP — REQUIRED BEFORE THIS PAGE WORKS
+   =====================================================================
+   1. Go to https://console.firebase.google.com/ and sign in with any
+      Google account (this is free and is NOT a Claude account — your
+      students never see or touch this).
+   2. Create a new project (any name, e.g. "course-activity-board").
+      You can disable Google Analytics for it, it isn't needed.
+   3. In the left sidebar: Build → Realtime Database → "Create Database".
+      Pick any region close to you, and start in "test mode" (you will
+      replace the rules below with the ones from SECURITY NOTE anyway).
+   4. In the left sidebar: Project settings (gear icon) → General →
+      "Your apps" → click the "</>" (Web) icon → register an app
+      (no Hosting needed) → copy the `firebaseConfig` object it shows
+      you and paste it below, replacing the placeholder values.
+   5. In the left sidebar: Build → Authentication → "Get started" →
+      under Sign-in method, enable "Anonymous". This does NOT ask
+      teachers or students to sign in to anything — it is a silent,
+      invisible background call this page makes so the rules below can
+      tell "a write" apart from "no one" (still not a real per-role
+      login; see SECURITY NOTE).
+   6. Still in the console: Realtime Database → Rules tab, replace the
+      rules with:
+        {
+          "rules": {
+            "room": {
+              ".read": "auth != null",
+              ".write": "auth != null"
+            },
+            "teacherPin": {
+              ".read": "auth != null",
+              ".write": "auth != null"
+            },
+            "submissions": {
+              "$roomCode": {
+                "$activityId": {
+                  ".read": "auth != null",
+                  "$studentId": {
+                    ".write": "auth != null && auth.uid === $studentId"
+                  }
+                }
+              }
+            }
+          }
+        }
+      Publish. (See SECURITY NOTE below for what this does and does not
+      protect.)
+   7. Upload this HTML file anywhere static — GitHub Pages, your
+      school's web space, Firebase Hosting, etc. — and share that URL.
+      No login of any kind is required for teachers or students.
+
+   SECURITY NOTE: the rules above require anonymous sign-in (silent, no
+   UI) for any access at all, which blocks unauthenticated scraping —
+   e.g. someone pasting your bare database URL into a browser, or a
+   search engine indexing it. Each student can only WRITE their own
+   submission (the `$studentId` key must equal their own anonymous
+   `auth.uid`), so one student cannot overwrite or spoof another's
+   answer. What this can NOT do: tell a teacher apart from a student —
+   there is no real per-role login here, only a shared 4-digit PIN that
+   gates the teacher screens in this page's own UI, not in the database
+   rules. Nothing in the student-facing screens ever requests the full
+   answer list, but a technically capable student who reads the page
+   source (the Firebase config is public in it, same as any client-side
+   web app) could call the same read that the teacher's live wall and
+   CSV export use. If that risk matters for your course, the only real
+   fix is giving the teacher an actual login (e.g. Firebase Auth with
+   email/password or Google sign-in for the teacher only) — ask if you
+   want that added. For a low-stakes classroom activity board, the
+   current setup is a reasonable trade-off; still avoid putting more
+   sensitive data into it than student ID, nickname, and short answers.
+   ===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDeLXn-_ukkwLrZSIANgzZ2x04JTIc-MFk",
+  authDomain: "mhslp1.firebaseapp.com",
+  databaseURL: "https://mhslp1-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "mhslp1",
+  storageBucket: "mhslp1.firebasestorage.app",
+  messagingSenderId: "3529533731",
+  appId: "1:3529533731:web:cd80cc1fc9072cd9f84496"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+import {
+  getDatabase, ref, get, set
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-database.js";
+import {
+  getAuth, signInAnonymously, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+
+const fbApp = initializeApp(firebaseConfig);
+const rtdb = getDatabase(fbApp);
+const fbAuth = getAuth(fbApp);
+
+/* ---------- silent anonymous sign-in ----------
+   No UI, no email/password, nothing for teachers or students to see or
+   type — this only exists so the database rules have an `auth.uid` to
+   check ("a student may only write their own submission"). It is not a
+   Claude login and is not a real per-role login: it cannot tell a
+   teacher apart from a student, see the rules file for what that does
+   and does not protect. */
+var authReadyPromise = new Promise(function(resolve){
+  var unsub = onAuthStateChanged(fbAuth, function(user){
+    if(user){ unsub(); resolve(user); }
+  });
+  signInAnonymously(fbAuth).catch(function(){ /* surfaced via dbGet/dbSet failing */ });
+});
+async function ensureAuth(){ return authReadyPromise; }
+async function getMyUid(){ var user = await authReadyPromise; return user.uid; }
+
+/* ---------- thin async wrappers over Realtime Database ---------- */
+async function dbGet(path){
+  try{
+    await ensureAuth();
+    var snap = await get(ref(rtdb, path));
+    setConnBanner(false);
+    return snap.exists() ? snap.val() : null;
+  }catch(e){
+    setConnBanner(true);
+    return null;
+  }
+}
+async function dbSet(path, obj){
+  try{
+    await ensureAuth();
+    await set(ref(rtdb, path), obj);
+    setConnBanner(false);
+    return true;
+  }catch(e){
+    setConnBanner(true);
+    return false;
+  }
+}
+/** Reads a node whose children are records, returns them as an array. */
+async function dbListValues(path){
+  var val = await dbGet(path);
+  if(!val) return [];
+  return Object.values(val);
+}
+async function dbListCount(path){
+  var val = await dbGet(path);
+  if(!val) return 0;
+  return Object.keys(val).length;
+}
+/** For CSV export: `submissions/{roomCode}` holds {activityId: {studentId: record}} — flatten to a plain array of records. */
+async function dbListNestedValues(path){
+  var val = await dbGet(path);
+  if(!val) return [];
+  var out = [];
+  Object.values(val).forEach(function(byStudent){
+    Object.values(byStudent).forEach(function(record){ out.push(record); });
+  });
+  return out;
+}
+
+var connBannerEl = null;
+var connBannerTimer = null;
+function setConnBanner(show){
+  if(!connBannerEl) connBannerEl = document.getElementById('connBanner');
+  if(show){
+    connBannerEl.classList.add('show');
+    if(connBannerTimer) clearTimeout(connBannerTimer);
+  } else if(connBannerEl.classList.contains('show')){
+    if(connBannerTimer) clearTimeout(connBannerTimer);
+    connBannerTimer = setTimeout(function(){ connBannerEl.classList.remove('show'); }, 800);
+  }
+}
+
+(function(){
+  /* ---------- generic modal (replaces native confirm/alert) ---------- */
+  var modalOverlay = document.getElementById('modalOverlay');
+  var modalMessage = document.getElementById('modalMessage');
+  var modalCancel = document.getElementById('modalCancel');
+  var modalOk = document.getElementById('modalOk');
+  var modalResolve = null;
+  function showConfirm(msg){
+    modalMessage.textContent = msg; modalCancel.style.display=''; modalOverlay.style.display='flex';
+    return new Promise(function(res){ modalResolve = res; });
+  }
+  function showAlert(msg){
+    modalMessage.textContent = msg; modalCancel.style.display='none'; modalOverlay.style.display='flex';
+    return new Promise(function(res){ modalResolve = res; });
+  }
+  modalOk.addEventListener('click', function(){ modalOverlay.style.display='none'; if(modalResolve) modalResolve(true); modalResolve=null; });
+  modalCancel.addEventListener('click', function(){ modalOverlay.style.display='none'; if(modalResolve) modalResolve(false); modalResolve=null; });
+
+  /* ---------- database paths ---------- */
+  var ROOM_PATH = 'room';
+  var PIN_PATH = 'teacherPin';
+  function submissionPath(roomCode, activityId, studentId){
+    return 'submissions/' + roomCode + '/' + activityId + '/' + studentId;
+  }
+  function activitySubmissionsPath(roomCode, activityId){
+    return 'submissions/' + roomCode + '/' + activityId;
+  }
+  function roomSubmissionsPath(roomCode){
+    return 'submissions/' + roomCode;
+  }
+
+  var AVATAR_COLORS = ['#2fd9b8', '#ff9a52', '#9b87ff', '#e37b6b', '#5b9bd5', '#d9a441'];
+  function avatarColorFor(seedStr){
+    var h = 0;
+    for(var i=0;i<seedStr.length;i++){ h = (h*31 + seedStr.charCodeAt(i)) % AVATAR_COLORS.length; }
+    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+  }
+
+  function relativeTime(ts){
+    var diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if(diffSec < 60) return '剛剛';
+    if(diffSec < 3600) return Math.floor(diffSec/60) + '分鐘前';
+    if(diffSec < 86400) return Math.floor(diffSec/3600) + '小時前';
+    return new Date(ts).toLocaleString('zh-TW');
+  }
+
+  function genRoomCode(){ return String(Math.floor(1000 + Math.random()*9000)); }
+  function genActivityId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function escapeCsv(val){
+    var s = (val === null || val === undefined) ? '' : String(val);
+    return '"' + s.replace(/"/g,'""') + '"';
+  }
+
+  function showScreen(id){
+    document.querySelectorAll('.screen').forEach(function(el){ el.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+  }
+
+  var teacherPoll = null, studentPoll = null, wallPoll = null;
+  function stopPolls(){
+    if(teacherPoll){ clearInterval(teacherPoll); teacherPoll = null; }
+    if(studentPoll){ clearInterval(studentPoll); studentPoll = null; }
+    if(wallPoll){ clearInterval(wallPoll); wallPoll = null; }
+  }
+
+  /* ================= ROLE SELECT ================= */
+  document.getElementById('pickTeacher').addEventListener('click', async function(){
+    showScreen('screen-teacher-gate');
+    document.getElementById('gateError').textContent = '';
+    document.getElementById('gatePinInput').value = '';
+    var existing = await dbGet(PIN_PATH);
+    var title = document.getElementById('gateTitle');
+    var hint = document.getElementById('gateHint');
+    var submitBtn = document.getElementById('gateSubmit');
+    if(existing && existing.pin){
+      gateMode = 'enter';
+      title.textContent = '請輸入4位數密碼';
+      hint.textContent = '只有知道密碼的人才能開啟主控台。';
+      submitBtn.textContent = '進入主控台';
+    } else {
+      gateMode = 'set';
+      title.textContent = '設定4位數密碼';
+      hint.textContent = '第一次使用，請設定一組4位數密碼（之後每次進主控台都需要輸入）。';
+      submitBtn.textContent = '設定並進入';
+    }
+    document.getElementById('gatePinInput').focus();
+  });
+
+  document.getElementById('gateBack').addEventListener('click', function(){ showScreen('screen-role'); });
+
+  var gateMode = 'enter';
+  document.getElementById('gatePinInput').addEventListener('input', function(e){
+    e.target.value = e.target.value.replace(/[^0-9]/g,'').slice(0,4);
+  });
+
+  async function submitGate(){
+    var pin = document.getElementById('gatePinInput').value.trim();
+    var errEl = document.getElementById('gateError');
+    if(pin.length !== 4){
+      errEl.textContent = '請輸入4位數字';
+      return;
+    }
+    if(gateMode === 'set'){
+      await dbSet(PIN_PATH, {pin: pin});
+      initTeacher();
+    } else {
+      var stored = await dbGet(PIN_PATH);
+      if(stored && stored.pin === pin){
+        initTeacher();
+      } else {
+        errEl.textContent = '密碼不正確';
+        document.getElementById('gatePinInput').value = '';
+        document.getElementById('gatePinInput').focus();
+      }
+    }
+  }
+  document.getElementById('gateSubmit').addEventListener('click', submitGate);
+  document.getElementById('gatePinInput').addEventListener('keydown', function(e){ if(e.key==='Enter') submitGate(); });
+
+  /* ================= TEACHER ================= */
+  var lastRoom = null;
+
+  var elRoomCodeDisplay = document.getElementById('roomCodeDisplay');
+  var elCurrentQLabel = document.getElementById('currentQLabel');
+  var elCurrentQText = document.getElementById('currentQText');
+  var elNewQInput = document.getElementById('newQInput');
+  var elPublishQBtn = document.getElementById('publishQBtn');
+  var elDashRespondedCount = document.getElementById('dashRespondedCount');
+
+  async function initTeacher(){
+    showScreen('screen-teacher');
+    var r = await dbGet(ROOM_PATH);
+    if(!r){
+      r = { roomCode: genRoomCode(), activityId: null, question: '', createdAt: Date.now() };
+      await dbSet(ROOM_PATH, r);
+    }
+    lastRoom = r;
+    await renderTeacher();
+    stopPolls();
+    teacherPoll = setInterval(renderTeacher, 1500);
+  }
+
+  async function renderTeacher(){
+    var r = await dbGet(ROOM_PATH);
+    if(!r) return;
+    lastRoom = r;
+    elRoomCodeDisplay.textContent = r.roomCode;
+
+    if(!r.activityId){
+      elCurrentQLabel.textContent = '目前尚未發布題目';
+      elCurrentQText.textContent = '';
+      elDashRespondedCount.textContent = '0';
+      return;
+    }
+    elCurrentQLabel.textContent = '目前題目';
+    elCurrentQText.textContent = r.question;
+
+    var count = await dbListCount(activitySubmissionsPath(r.roomCode, r.activityId));
+    elDashRespondedCount.textContent = count;
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  document.getElementById('teacherBack').addEventListener('click', function(){ stopPolls(); showScreen('screen-role'); });
+
+  /* ---- live answer wall (dedicated page) ---- */
+  var elFeedQuestionText = document.getElementById('feedQuestionText');
+  var elFeedCount = document.getElementById('feedCount');
+  var elFeedList = document.getElementById('feedList');
+  var seenFeedIds = {};
+  var wallActivityId = null;
+
+  document.getElementById('openWallBtn').addEventListener('click', function(){
+    seenFeedIds = {};
+    wallActivityId = null;
+    showScreen('screen-wall');
+    renderWall();
+    if(wallPoll) clearInterval(wallPoll);
+    wallPoll = setInterval(renderWall, 1500);
+  });
+
+  document.getElementById('wallBack').addEventListener('click', function(){
+    if(wallPoll){ clearInterval(wallPoll); wallPoll = null; }
+    showScreen('screen-teacher');
+  });
+
+  async function renderWall(){
+    var r = await dbGet(ROOM_PATH);
+    if(!r) return;
+    lastRoom = r;
+
+    if(!r.activityId){
+      elFeedQuestionText.textContent = '尚未發布題目';
+      elFeedCount.textContent = '0';
+      elFeedList.innerHTML = '<div class="feed-empty">老師還沒有發布題目</div>';
+      seenFeedIds = {};
+      wallActivityId = null;
+      return;
+    }
+
+    elFeedQuestionText.textContent = r.question;
+
+    if(r.activityId !== wallActivityId){
+      seenFeedIds = {};
+      wallActivityId = r.activityId;
+    }
+
+    var subs = await dbListValues(activitySubmissionsPath(r.roomCode, r.activityId));
+    elFeedCount.textContent = subs.length;
+
+    if(subs.length === 0){
+      elFeedList.innerHTML = '<div class="feed-empty">還沒有人送出答案</div>';
+      return;
+    }
+
+    subs.sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); }); // newest first, like a feed
+
+    var html = '';
+    subs.forEach(function(s){
+      var idKey = s.studentId + '|' + s.timestamp;
+      var isNew = !seenFeedIds[idKey];
+      seenFeedIds[idKey] = true;
+      var nick = s.nickname || '匿名';
+      var initial = nick.charAt(0).toUpperCase();
+      var color = avatarColorFor(nick);
+      html += '<div class="feed-item' + (isNew ? ' feed-item-new' : '') + '">' +
+        '<div class="feed-avatar" style="background:' + color + '">' + escapeHtml(initial) + '</div>' +
+        '<div class="feed-body">' +
+          '<div class="feed-top">' +
+            '<span class="feed-nick">' + escapeHtml(nick) + '</span>' +
+            '<span class="feed-time">' + relativeTime(s.timestamp || Date.now()) + '</span>' +
+          '</div>' +
+          '<div class="feed-text">' + escapeHtml(s.answer || '') + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    elFeedList.innerHTML = html;
+  }
+
+  document.getElementById('exportCsvBtn2').addEventListener('click', function(){
+    document.getElementById('exportCsvBtn').click();
+  });
+
+  document.getElementById('newSessionBtn').addEventListener('click', async function(){
+    var ok = await showConfirm('確定要開始新場次嗎？會產生新的房間代碼，目前的題目與作答牆會清空（先前所有紀錄仍保留在雲端，CSV仍可個別匯出）。');
+    if(!ok) return;
+    var r = { roomCode: genRoomCode(), activityId: null, question: '', createdAt: Date.now() };
+    await dbSet(ROOM_PATH, r);
+    elNewQInput.value = '';
+    await renderTeacher();
+  });
+
+  elPublishQBtn.addEventListener('click', async function(){
+    var q = elNewQInput.value.trim();
+    if(!q){
+      await showAlert('請先輸入題目內容');
+      return;
+    }
+    var r = lastRoom;
+    if(!r) return;
+    r.activityId = genActivityId();
+    r.question = q;
+    await dbSet(ROOM_PATH, r);
+    elNewQInput.value = '';
+    await renderTeacher();
+  });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', async function(){
+    var r = lastRoom || await dbGet(ROOM_PATH);
+    if(!r){ await showAlert('目前沒有場次資料'); return; }
+    var all = await dbListNestedValues(roomSubmissionsPath(r.roomCode));
+    if(all.length === 0){
+      await showAlert('目前這個房間代碼還沒有任何作答紀錄');
+      return;
+    }
+    all.sort(function(a,b){ return (a.timestamp||0) - (b.timestamp||0); });
+    var rows = [['學號','暱稱','題目','答案','提交時間'].map(escapeCsv).join(',')];
+    all.forEach(function(s){
+      var t = s.timestamp ? new Date(s.timestamp).toLocaleString('zh-TW') : '';
+      rows.push([s.studentId, s.nickname, s.question, s.answer, t].map(escapeCsv).join(','));
+    });
+    var csvContent = '﻿' + rows.join('\r\n');
+    var blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'course_activity_' + r.roomCode + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  /* ================= STUDENT ================= */
+  // studentId is this browser's anonymous-auth uid — the database rules
+  // only let a submission be written under its own owner's uid.
+  var joinedRoomCode = null;
+  var myStudentNo = '';
+  var myNickname = '';
+  var lastAnsweredActivityId = null; // activityId the student has already submitted for
+  var lastAnsweredText = '';
+
+  document.getElementById('pickStudent').addEventListener('click', function(){
+    document.getElementById('roomCodeInput').value = '';
+    document.getElementById('joinError').textContent = '';
+    showScreen('screen-join');
+  });
+  document.getElementById('joinBack').addEventListener('click', function(){ showScreen('screen-role'); });
+
+  document.getElementById('joinSubmit').addEventListener('click', async function(){
+    var code = document.getElementById('roomCodeInput').value.trim();
+    var errEl = document.getElementById('joinError');
+    if(!code){ errEl.textContent = '請輸入房間代碼'; return; }
+    var r = await dbGet(ROOM_PATH);
+    if(!r || r.roomCode !== code){
+      errEl.textContent = '房間代碼不正確，請再確認一次';
+      return;
+    }
+    joinedRoomCode = code;
+    document.getElementById('studentIdInput').value = '';
+    document.getElementById('nicknameInput').value = '';
+    document.getElementById('registerError').textContent = '';
+    showScreen('screen-register');
+  });
+
+  document.getElementById('registerBack').addEventListener('click', function(){ showScreen('screen-join'); });
+
+  document.getElementById('registerSubmit').addEventListener('click', function(){
+    var sid = document.getElementById('studentIdInput').value.trim();
+    var nick = document.getElementById('nicknameInput').value.trim();
+    var errEl = document.getElementById('registerError');
+    if(!sid || !nick){ errEl.textContent = '學號和暱稱都要填寫'; return; }
+    myStudentNo = sid;
+    myNickname = nick;
+    lastAnsweredActivityId = null;
+    lastAnsweredText = '';
+    renderedState = {activityId: null, mode: null};
+    showScreen('screen-answer');
+    stopPolls();
+    renderStudentAnswer();
+    studentPoll = setInterval(renderStudentAnswer, 1500);
+  });
+
+  document.getElementById('answerBack').addEventListener('click', function(){
+    stopPolls();
+    showScreen('screen-role');
+  });
+
+  var renderedState = {activityId: null, mode: null};
+
+  function buildComposeUI(ticket, r, prefill){
+    ticket.innerHTML =
+      '<div class="qcard">' +
+        '<div class="qcard-label">目前題目</div>' +
+        '<div class="qcard-text">' + escapeHtml(r.question) + '</div>' +
+        '<textarea id="myAnswerInput" placeholder="輸入你的答案...">' + escapeHtml(prefill || '') + '</textarea>' +
+        '<button class="btn btn-primary" id="submitAnswerBtn">送出答案</button>' +
+      '</div>';
+    document.getElementById('submitAnswerBtn').addEventListener('click', async function(){
+      var val = document.getElementById('myAnswerInput').value.trim();
+      if(!val){ return; }
+      var ok = await showConfirm('送出後就無法修改，確定要送出這個答案嗎？');
+      if(!ok) return;
+      var record = {
+        studentId: myStudentNo,
+        nickname: myNickname,
+        answer: val,
+        question: r.question,
+        activityId: r.activityId,
+        timestamp: Date.now()
+      };
+      var myUid = await getMyUid();
+      await dbSet(submissionPath(r.roomCode, r.activityId, myUid), record);
+      lastAnsweredActivityId = r.activityId;
+      lastAnsweredText = val;
+      renderSubmittedView(ticket, r, val);
+      renderedState = {activityId: r.activityId, mode: 'submitted'};
+    });
+  }
+
+  async function renderStudentAnswer(){
+    var ticket = document.getElementById('answerTicket');
+    var r = await dbGet(ROOM_PATH);
+
+    if(!r || r.roomCode !== joinedRoomCode){
+      stopPolls();
+      renderedState = {activityId: null, mode: null};
+      showAlert('這個場次已經結束或房間代碼已更新，請重新輸入新的房間代碼。').then(function(){
+        showScreen('screen-join');
+      });
+      return;
+    }
+
+    if(!r.activityId){
+      if(renderedState.mode !== 'waiting'){
+        ticket.innerHTML = '<div class="wait-msg"><div class="pulse"></div>老師還沒發布題目，請稍候...</div>';
+        renderedState = {activityId: null, mode: 'waiting'};
+      }
+      return;
+    }
+
+    if(lastAnsweredActivityId === r.activityId){
+      if(renderedState.activityId !== r.activityId || renderedState.mode !== 'submitted'){
+        renderSubmittedView(ticket, r, lastAnsweredText);
+        renderedState = {activityId: r.activityId, mode: 'submitted'};
+      }
+      return;
+    }
+
+    // new activity: check once whether a record already exists (e.g. after a page refresh)
+    if(renderedState.activityId !== r.activityId){
+      var myUid = await getMyUid();
+      var existing = await dbGet(submissionPath(r.roomCode, r.activityId, myUid));
+      if(existing){
+        lastAnsweredActivityId = r.activityId;
+        lastAnsweredText = existing.answer || '';
+        renderSubmittedView(ticket, r, lastAnsweredText);
+        renderedState = {activityId: r.activityId, mode: 'submitted'};
+        return;
+      }
+      buildComposeUI(ticket, r, '');
+      renderedState = {activityId: r.activityId, mode: 'compose'};
+    }
+    // else: same activityId already showing compose UI -> do nothing, leave the student's typing untouched
+  }
+
+  function renderSubmittedView(ticket, r, answerText){
+    ticket.innerHTML =
+      '<div class="submitted-box">' +
+        '<div class="submitted-check">✓</div>' +
+        '<div class="qcard-label">已送出，答案無法再修改</div>' +
+        '<div class="qcard-text" style="font-size:16px;">' + escapeHtml(r.question) + '</div>' +
+        '<div class="submitted-answer">' + escapeHtml(answerText) + '</div>' +
+      '</div>';
+  }
+
+})();
+</script>
+</body>
+</html>
