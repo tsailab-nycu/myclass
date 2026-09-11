@@ -188,7 +188,10 @@
     <div class="topbar">
       <div><button class="btn-back" id="teacherBack">← 返回</button></div>
       <div class="brand">課程活動看板 · 主控台</div>
-      <button class="btn btn-ghost" id="newSessionBtn">開始新場次</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost" id="changePinBtn">修改密碼</button>
+        <button class="btn btn-ghost" id="newSessionBtn">開始新場次</button>
+      </div>
     </div>
     <div class="teacher-body">
       <div class="room-strip">
@@ -211,6 +214,27 @@
       <div class="room-strip">
         <div class="current-q-label">已作答 <b id="dashRespondedCount" style="color:var(--chalk);">0</b> 人</div>
         <button class="btn btn-primary" id="openWallBtn">查看即時作答牆 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEACHER: CHANGE PIN -->
+  <div id="screen-change-pin" class="screen">
+    <div class="topbar">
+      <div><button class="btn-back" id="changePinBack">← 返回主控台</button></div>
+      <div class="brand">修改密碼</div>
+      <div style="width:60px"></div>
+    </div>
+    <div class="center-wrap">
+      <div class="ticket">
+        <div class="field-label">目前密碼</div>
+        <input type="password" id="currentPinInput" class="field-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4位數密碼" style="max-width:200px;letter-spacing:6px;">
+        <div class="field-label">新密碼</div>
+        <input type="password" id="newPinInput" class="field-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4位數新密碼" style="max-width:200px;letter-spacing:6px;">
+        <div class="field-label">再輸入一次新密碼</div>
+        <input type="password" id="confirmPinInput" class="field-input" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="再輸入一次" style="max-width:200px;letter-spacing:6px;">
+        <div class="err-text" id="changePinError"></div>
+        <button class="btn btn-primary" id="changePinSubmit" style="width:100%;max-width:280px;padding:14px;">更新密碼</button>
       </div>
     </div>
   </div>
@@ -567,7 +591,7 @@ function setConnBanner(show){
       initTeacher();
     } else {
       var stored = await dbGet(PIN_PATH);
-      if(stored && stored.pin === pin){
+      if(stored && String(stored.pin) === pin){
         initTeacher();
       } else {
         errEl.textContent = '密碼不正確';
@@ -628,6 +652,47 @@ function setConnBanner(show){
   }
 
   document.getElementById('teacherBack').addEventListener('click', function(){ stopPolls(); showScreen('screen-role'); });
+
+  /* ---- change PIN ---- */
+  ['currentPinInput','newPinInput','confirmPinInput'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', function(e){
+      e.target.value = e.target.value.replace(/[^0-9]/g,'').slice(0,4);
+    });
+  });
+
+  document.getElementById('changePinBtn').addEventListener('click', function(){
+    document.getElementById('currentPinInput').value = '';
+    document.getElementById('newPinInput').value = '';
+    document.getElementById('confirmPinInput').value = '';
+    document.getElementById('changePinError').textContent = '';
+    showScreen('screen-change-pin');
+  });
+
+  document.getElementById('changePinBack').addEventListener('click', function(){ showScreen('screen-teacher'); });
+
+  document.getElementById('changePinSubmit').addEventListener('click', async function(){
+    var current = document.getElementById('currentPinInput').value.trim();
+    var next = document.getElementById('newPinInput').value.trim();
+    var confirmVal = document.getElementById('confirmPinInput').value.trim();
+    var errEl = document.getElementById('changePinError');
+
+    var stored = await dbGet(PIN_PATH);
+    if(!stored || String(stored.pin) !== current){
+      errEl.textContent = '目前密碼不正確';
+      return;
+    }
+    if(next.length !== 4){
+      errEl.textContent = '新密碼必須是4位數字';
+      return;
+    }
+    if(next !== confirmVal){
+      errEl.textContent = '兩次輸入的新密碼不一致';
+      return;
+    }
+    await dbSet(PIN_PATH, {pin: next});
+    await showAlert('密碼已更新');
+    showScreen('screen-teacher');
+  });
 
   /* ---- live answer wall (dedicated page) ---- */
   var elFeedQuestionText = document.getElementById('feedQuestionText');
